@@ -321,7 +321,7 @@
                 <input type="text" id="playerName" class="input-field" placeholder="输入您的昵称" maxlength="10">
                 
                 <button class="btn primary" onclick="enterGame()" id="enterGameBtn">
-                    🎮 开始游戏
+                    🎮 进入游戏
                 </button>
                 
                 <button class="btn secondary" onclick="showLeaderboard()" id="leaderboardBtn">
@@ -345,7 +345,7 @@
                     </div>
                 </div>
                 
-                <button class="btn primary" onclick="startGame()" id="startGameBtn">开始游戏</button>
+                <button class="btn primary" onclick="startGame()" id="startGameBtn">🚀 开始游戏</button>
             </div>
             
             <div style="display: flex; justify-content: center; align-items: center; height: calc(100% - 80px);">
@@ -825,13 +825,29 @@
         window.addEventListener('load', () => {
             console.log('页面加载完成，开始初始化');
             initDemo();
-            // 延迟执行以确保DOM完全加载
+        });
+
+        // 备用初始化（如果load事件失败）
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM内容加载完成');
             setTimeout(() => {
-                if (canvas) {
-                    resizeCanvas();
-                    setupEventListeners();
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement && statusElement.textContent.includes('初始化中')) {
+                    console.log('检测到初始化未完成，开始备用初始化');
+                    initDemo();
                 }
-            }, 100);
+            }, 1000);
+        });
+
+        // 页面显示时也尝试初始化
+        window.addEventListener('pageshow', () => {
+            setTimeout(() => {
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement && statusElement.textContent.includes('初始化中')) {
+                    console.log('页面显示时检测到初始化未完成，重新初始化');
+                    initDemo();
+                }
+            }, 500);
         });
     </script>
 </body>
