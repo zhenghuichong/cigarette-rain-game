@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>香烟雨 - 多人排行榜</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 48, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.15) 0%, transparent 50%),
+                linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+            background-size: 400% 400%;
+            animation: gradientFlow 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+            /* 优化移动端触摸 */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+            background: 
+                linear-gradient(145deg, 
+                    rgba(255, 255, 255, 0.95) 0%, 
+                    rgba(255, 255, 255, 0.9) 50%, 
+                    rgba(255, 255, 255, 0.95) 100%);
+            border-radius: 30px;
+            padding: 40px 30px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.1),
+                0 15px 35px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 69, 19, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+            position: relative;
+            line-height: 1.2;
+            text-align: center;
+            animation: titlePulse 3s ease-in-out infinite;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1::before {
+            content: '🚬';
+            position: absolute;
+            left: -50px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+            animation: floatIcon 2s ease-in-out infinite;
+        }
+
+        h1::after {
+            content: '🚬';
+            position: absolute;
+            right: -50px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+            animation: floatIcon 2s ease-in-out infinite reverse;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes floatIcon {
+            0%, 100% { transform: translateY(-50%) rotate(0deg); }
+            50% { transform: translateY(-60%) rotate(10deg); }
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 40px;
+            font-weight: 500;
+            opacity: 0.8;
+        }
+
+        /* 登录界面样式 */
+        .login-screen {
+            display: block;
+        }
+
+        .game-screen {
+            display: none;
+        }
+
+        .leaderboard-screen {
+            display: none;
+        }
+
+        .input-group {
+            margin: 30px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+            text-align: left;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .input-group label::before {
+            content: '👤';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            max-width: 100%;
+            padding: 20px 24px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            background: rgba(255, 255, 255, 0.9);
+            outline: none;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 
+                0 5px 15px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .input-group input:focus {
+            border-color: #667eea;
+            box-shadow: 
+                0 0 25px rgba(102, 126, 234, 0.3),
+                0 8px 20px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            padding: 22px 40px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 
+                0 15px 35px rgba(102, 126, 234, 0.3),
+                0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            width: 100%;
+            max-width: 300px;
+            text-transform: none;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            margin: 12px auto;
+            display: block;
+            min-height: 60px;
+            /* 移动端触摸优化 */
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            box-shadow: 
+                0 20px 40px rgba(102, 126, 234, 0.4),
+                0 8px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .btn:active {
+            background: linear-gradient(135deg, #5a3d7a 0%, #4a5bb8 100%);
+            box-shadow: 
+                0 10px 20px rgba(102, 126, 234, 0.3),
+                0 3px 10px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn.btn-primary {
+            background: linear-gradient(145deg, #ff6b35 0%, #f7931e 25%, #ffd700 50%, #f7931e 75%, #ff6b35 100%);
+            background-size: 300% 100%;
+            animation: primaryGlow 2s ease-in-out infinite alternate;
+            color: #5d4037;
+            border: 3px solid #ffd700;
+            font-size: 1.6rem;
+            font-weight: 900;
+            padding: 25px 40px;
+            text-shadow: 
+                1px 1px 0 rgba(255, 255, 255, 0.8),
+                2px 2px 4px rgba(139, 69, 19, 0.3);
+            box-shadow: 
+                0 12px 35px rgba(255, 107, 53, 0.4),
+                0 6px 20px rgba(247, 147, 30, 0.3),
+                inset 0 2px 0 rgba(255, 255, 255, 0.6),
+                inset 0 -2px 0 rgba(139, 69, 19, 0.2);
+        }
+
+        .btn.btn-primary:hover {
+            background: linear-gradient(145deg, #ff8c42 0%, #ffa500 25%, #ffed4e 50%, #ffa500 75%, #ff8c42 100%);
+            border-color: #ffed4e;
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 
+                0 15px 45px rgba(255, 107, 53, 0.5),
+                0 8px 25px rgba(247, 147, 30, 0.4),
+                inset 0 3px 0 rgba(255, 255, 255, 0.7),
+                inset 0 -3px 0 rgba(139, 69, 19, 0.3);
+        }
+
+        .btn.btn-primary:active {
+            background: linear-gradient(145deg, #e55100 0%, #f57c00 50%, #e55100 100%);
+            transform: translateY(1px) scale(0.98);
+            box-shadow: 
+                0 6px 20px rgba(255, 107, 53, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                inset 0 -1px 0 rgba(139, 69, 19, 0.4);
+        }
+
+        @keyframes primaryGlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .btn.secondary {
+            background: linear-gradient(145deg, #8b4513 0%, #a0522d 50%, #8b4513 100%);
+            color: #f5e9d8;
+            border-color: #cd853f;
+            font-size: 1.1rem;
+            padding: 15px 25px;
+        }
+
+        .btn.secondary:hover {
+            background: linear-gradient(145deg, #a0522d 0%, #8b4513 50%, #a0522d 100%);
+            border-color: #daa520;
+        }
+
+        /* 游戏界面样式 */
+        .game-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 15px 0;
+            padding: 10px;
+            background: linear-gradient(145deg, rgba(212, 175, 55, 0.15) 0%, rgba(139, 69, 19, 0.15) 100%);
+            border-radius: 12px;
+            box-shadow: 
+                inset 0 1px 3px rgba(255, 255, 255, 0.3),
+                0 3px 12px rgba(139, 69, 19, 0.15);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .game-info span {
+            font-weight: 600;
+            color: #5d4037;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 6px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            box-shadow: 
+                0 2px 6px rgba(139, 69, 19, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .game-info span .label {
+            font-size: 0.7rem;
+            color: #8d6e63;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            font-weight: 500;
+        }
+
+        .game-info span .value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #d4af37;
+            text-shadow: 1px 1px 2px rgba(139, 69, 19, 0.5);
+            line-height: 1;
+        }
+
+        #gameCanvas {
+            border: 3px solid #d4af37;
+            background: 
+                radial-gradient(ellipse at center top, #87ceeb 0%, #4682b4 30%, #1e3c72 100%),
+                linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%);
+            border-radius: 20px;
+            cursor: crosshair;
+            box-shadow: 
+                0 15px 35px rgba(139, 69, 19, 0.25),
+                0 8px 15px rgba(212, 175, 55, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            margin: 25px 0;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 排行榜样式 */
+        .leaderboard {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 16px;
+            margin: 12px 0;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            box-shadow: 
+                0 4px 15px rgba(139, 69, 19, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .leaderboard-item:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 8px rgba(139, 69, 19, 0.15);
+        }
+
+        .leaderboard-item.current-user {
+            background: linear-gradient(145deg, rgba(212, 175, 55, 0.4) 0%, rgba(255, 215, 0, 0.4) 100%);
+            border: 2px solid #d4af37;
+            box-shadow: 
+                0 6px 20px rgba(212, 175, 55, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+
+        .rank {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #d4af37;
+            min-width: 50px;
+            text-shadow: 1px 1px 2px rgba(139, 69, 19, 0.3);
+        }
+
+        .rank.first { 
+            color: #ffd700; 
+            text-shadow: 1px 1px 3px rgba(255, 215, 0, 0.5);
+        }
+        .rank.second { 
+            color: #c0c0c0; 
+            text-shadow: 1px 1px 2px rgba(192, 192, 192, 0.5);
+        }
+        .rank.third { 
+            color: #cd7f32; 
+            text-shadow: 1px 1px 2px rgba(205, 127, 50, 0.5);
+        }
+
+        .player-name {
+            flex: 1;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #5d4037;
+            text-align: left;
+            margin-left: 15px;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+        }
+
+        .score {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #8b4513;
+            text-shadow: 1px 1px 2px rgba(139, 69, 19, 0.3);
+        }
+
+        /* 全屏游戏模式样式 */
+        .fullscreen-game {
+            overflow: hidden;
+        }
+
+        .fullscreen-game .container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            max-width: none;
+            margin: 0;
+            padding: 10px;
+            border-radius: 0;
+            background: linear-gradient(145deg, rgba(245, 233, 216, 0.98) 0%, rgba(230, 216, 184, 0.98) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .fullscreen-game #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0;
+            z-index: 10;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+                margin: 10px;
+                max-width: 95vw;
+            }
+            
+            h1 {
+                font-size: 2.8rem;
+            }
+            
+            h1::after {
+                right: -45px;
+                font-size: 2rem;
+            }
+            
+            .game-info {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                margin: 20px 0;
+            }
+            
+            .btn {
+                padding: 15px 30px;
+                font-size: 1.2rem;
+                min-width: 160px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+                letter-spacing: 1px;
+            }
+            
+            h1::after {
+                right: -35px;
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                padding: 12px 25px;
+                font-size: 1.1rem;
+                min-width: 140px;
+                letter-spacing: 1px;
+            }
+            
+            .leaderboard-item {
+                padding: 12px 15px;
+            }
+            
+            .player-name {
+                font-size: 1rem;
+                margin-left: 15px;
+            }
+            
+            .score {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 登录界面 -->
+        <div id="loginScreen" class="login-screen">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h1>香烟雨多人大赛</h1>
+                <p class="subtitle">专注收集，挑战极限</p>
+            </div>
+            
+            <div class="input-group">
+                <label for="playerName">请输入你的昵称:</label>
+                <input type="text" id="playerName" placeholder="输入昵称" maxlength="20">
+            </div>
+            
+            <div>
+                <button class="btn" onclick="enterGame()">🚀 开始游戏</button>
+                <button class="btn secondary" onclick="showLeaderboard()">📊 查看排行榜</button>
+            </div>
+        </div>
+
+        <!-- 游戏界面 -->
+        <div id="gameScreen" class="game-screen">
+            <h1>香烟雨 🚬</h1>
+            
+            <div class="game-info">
+                <span>
+                    <div class="label">数量</div>
+                    <div class="value" id="count">0</div>
+                </span>
+                <span>
+                    <div class="label">时间</div>
+                    <div class="value"><span id="timer">15</span>秒</div>
+                </span>
+                <span>
+                    <div class="label">玩家</div>
+                    <div class="value" id="currentPlayer">-</div>
+                </span>
+            </div>
+
+            <canvas id="gameCanvas"></canvas>
+
+            <div class="game-controls">
+                <button id="startBtn" class="btn btn-primary">🚀 开始游戏</button>
+                <button id="endBtn" class="btn secondary" style="display: none;">结束游戏</button>
+                <button class="btn secondary" onclick="backToMenu()">返回菜单</button>
+            </div>
+        </div>
+
+        <!-- 排行榜界面 -->
+        <div id="leaderboardScreen" class="leaderboard-screen">
+            <h1>🏆 排行榜 🏆</h1>
+            
+            <div class="leaderboard" id="leaderboard">
+                <!-- 排行榜内容将动态生成 -->
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <button class="btn" onclick="backToMenu()">返回菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏配置
+        const GAME_CONFIG = {
+            GAME_DURATION: 15,
+            SPAWN_INTERVAL: 150,       // 降低间隔，提高掉落频率
+            CIGARETTE_SPEED_MIN: 2,    // 降低最小速度
+            CIGARETTE_SPEED_MAX: 4,    // 降低最大速度
+            CANVAS_WIDTH: 800,
+            CANVAS_HEIGHT: 600,
+            CIGARETTE_WIDTH: 140,      // 放大香烟宽度
+            CIGARETTE_HEIGHT: 200,     // 放大香烟高度
+            SPAWN_PROBABILITY: 0.9     // 提高生成概率
+        };
+
+        // 游戏状态
+        let gameState = {
+            currentPlayer: '',
+            cigaretteCount: 0,
+            timeRemaining: GAME_CONFIG.GAME_DURATION,
+            isGameRunning: false,
+            isGameOver: false,
+            cigarettes: [],
+            clickEffects: [],
+            gameOverButtons: null
+        };
+
+        // DOM元素
+        const loginScreen = document.getElementById('loginScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const leaderboardScreen = document.getElementById('leaderboardScreen');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const countElement = document.getElementById('count');
+        const timerElement = document.getElementById('timer');
+        const currentPlayerElement = document.getElementById('currentPlayer');
+        const startBtn = document.getElementById('startBtn');
+        const endBtn = document.getElementById('endBtn');
+
+        // 游戏循环相关
+        let gameLoopId;
+        let spawnInterval;
+        let timerInterval;
+
+        // 香烟图像
+        const cigaretteImage = new Image();
+        cigaretteImage.src = 'cigarette.jpg';
+        cigaretteImage.onerror = function() {
+            // 尝试其他可能的文件名
+            const alternatives = ['cigarette.png', 'cigarette.jpeg', 'cigarette.svg'];
+            let currentIndex = 0;
+            
+            function tryNext() {
+                if (currentIndex < alternatives.length) {
+                    cigaretteImage.src = alternatives[currentIndex];
+                    currentIndex++;
+                } else {
+                    // 使用备用SVG图像
+                    cigaretteImage.src = 'data:image/svg+xml;base64,' + btoa(`
+                        <svg width="100" height="150" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="100" height="150" fill="#DAA520"/>
+                            <rect y="0" width="100" height="35" fill="#C41E3A"/>
+                            <text x="50" y="24" font-family="Arial" font-size="20" font-weight="bold" text-anchor="middle" fill="#FFD700">中华</text>
+                        </svg>
+                    `);
+                }
+            }
+            
+            cigaretteImage.onerror = tryNext;
+            tryNext();
+        };
+
+        // 用户管理
+        function savePlayer(name, score) {
+            let players = JSON.parse(localStorage.getItem('cigarette_players') || '[]');
+            
+            // 查找现有玩家
+            const existingPlayer = players.find(p => p.name === name);
+            if (existingPlayer) {
+                if (score > existingPlayer.bestScore) {
+                    existingPlayer.bestScore = score;
+                    existingPlayer.lastPlayed = new Date().toLocaleString();
+                }
+                existingPlayer.totalGames++;
+            } else {
+                players.push({
+                    name: name,
+                    bestScore: score,
+                    totalGames: 1,
+                    lastPlayed: new Date().toLocaleString()
+                });
+            }
+            
+            localStorage.setItem('cigarette_players', JSON.stringify(players));
+        }
+
+        function getLeaderboard() {
+            let players = JSON.parse(localStorage.getItem('cigarette_players') || '[]');
+            return players.sort((a, b) => b.bestScore - a.bestScore);
+        }
+
+
+
+        // 界面切换
+        function showScreen(screenName) {
+            loginScreen.style.display = 'none';
+            gameScreen.style.display = 'none';
+            leaderboardScreen.style.display = 'none';
+            
+            document.getElementById(screenName + 'Screen').style.display = 'block';
+        }
+
+        function enterGame() {
+            const playerName = document.getElementById('playerName').value.trim();
+            if (!playerName) {
+                alert('请输入昵称！');
+                return;
+            }
+            
+            gameState.currentPlayer = playerName;
+            currentPlayerElement.textContent = playerName;
+            showScreen('game');
+            resizeCanvas();
+        }
+
+        function showLeaderboard() {
+            updateLeaderboardDisplay();
+            showScreen('leaderboard');
+        }
+
+        function backToMenu() {
+            // 如果游戏正在进行，结束游戏
+            if (gameState.isGameRunning) {
+                endGame();
+            }
+            
+            // 重置游戏状态
+            gameState.isGameOver = false;
+            gameState.gameOverButtons = null;
+            gameState.cigarettes = [];
+            gameState.clickEffects = [];
+            
+            // 重置UI
+            startBtn.style.display = 'inline-block';
+            endBtn.style.display = 'none';
+            
+            // 退出全屏
+            if (document.body.classList.contains('fullscreen-game')) {
+                exitFullscreen();
+                document.body.classList.remove('fullscreen-game');
+                
+                // 恢复隐藏的UI元素
+                if (/Mobi|Android/i.test(navigator.userAgent)) {
+                    document.querySelector('.game-info').style.display = 'grid';
+                    document.querySelector('h1').style.display = 'block';
+                    document.querySelector('.game-controls').style.display = 'block';
+                }
+            }
+            
+            showScreen('login');
+        }
+
+        function updateLeaderboardDisplay() {
+            const leaderboard = getLeaderboard();
+            const leaderboardDiv = document.getElementById('leaderboard');
+            
+            if (leaderboard.length === 0) {
+                leaderboardDiv.innerHTML = '<p style="text-align: center; color: #8d6e63; font-size: 1.2rem; margin: 40px 0;">暂无排行榜数据</p>';
+                return;
+            }
+            
+            let html = '';
+            leaderboard.forEach((player, index) => {
+                const rank = index + 1;
+                const isCurrentUser = player.name === gameState.currentPlayer;
+                
+                let rankClass = '';
+                if (rank === 1) rankClass = 'first';
+                else if (rank === 2) rankClass = 'second';
+                else if (rank === 3) rankClass = 'third';
+                
+                html += `
+                    <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+                        <div class="rank ${rankClass}">${rank}</div>
+                        <div class="player-name">
+                            ${player.name}
+                            <div style="font-size: 0.8rem; color: #8d6e63;">${player.totalGames}局 | ${player.lastPlayed}</div>
+                        </div>
+                        <div class="score">${player.bestScore}根</div>
+                    </div>
+                `;
+            });
+            
+            leaderboardDiv.innerHTML = html;
+        }
+
+        // 香烟类
+        class Cigarette {
+            constructor() {
+                const scaleFactor = canvas.width / GAME_CONFIG.CANVAS_WIDTH;
+                this.width = GAME_CONFIG.CIGARETTE_WIDTH * scaleFactor;
+                this.height = GAME_CONFIG.CIGARETTE_HEIGHT * scaleFactor;
+                this.x = Math.random() * (canvas.width - this.width);
+                this.y = -this.height;
+                this.speed = Math.random() * (GAME_CONFIG.CIGARETTE_SPEED_MAX - GAME_CONFIG.CIGARETTE_SPEED_MIN) + GAME_CONFIG.CIGARETTE_SPEED_MIN;
+                this.rotation = Math.random() * 0.4 - 0.2;
+                this.rotationSpeed = Math.random() * 0.02 - 0.01;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.rotation += this.rotationSpeed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.rotate(this.rotation);
+                
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 3;
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+
+                if (cigaretteImage.complete) {
+                    ctx.drawImage(cigaretteImage, -this.width / 2, -this.height / 2, this.width, this.height);
+                } else {
+                    ctx.fillStyle = '#d4af37';
+                    ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+                }
+
+                ctx.restore();
+            }
+
+            isClicked(mouseX, mouseY) {
+                return mouseX >= this.x && mouseX <= this.x + this.width &&
+                       mouseY >= this.y && mouseY <= this.y + this.height;
+            }
+        }
+
+        // 点击效果类
+        class ClickEffect {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.lifetime = 0;
+                this.maxLifetime = 30;
+                this.alpha = 1;
+                this.scale = 1;
+            }
+
+            update() {
+                this.lifetime++;
+                this.alpha = 0.8 * (1 - this.lifetime / this.maxLifetime);
+                this.scale = 0.5 + (this.lifetime / this.maxLifetime) * 1.5;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 30 * this.scale, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            isFinished() {
+                return this.lifetime >= this.maxLifetime;
+            }
+        }
+
+        // 游戏逻辑
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const isFullscreen = document.body.classList.contains('fullscreen-game');
+            
+            if (isFullscreen) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            } else {
+                const newWidth = Math.min(container.clientWidth * 0.95, GAME_CONFIG.CANVAS_WIDTH);
+                const aspectRatio = GAME_CONFIG.CANVAS_WIDTH / GAME_CONFIG.CANVAS_HEIGHT;
+                const newHeight = newWidth / aspectRatio;
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+            }
+        }
+
+        function enterFullscreen() {
+            const element = document.documentElement;
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) {
+                element.msRequestFullscreen();
+            }
+        }
+
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+
+        function startGame() {
+            if (gameState.isGameRunning) return;
+
+            // 移动端进入全屏
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+                enterFullscreen();
+                document.body.classList.add('fullscreen-game');
+                setTimeout(() => {
+                    resizeCanvas();
+                }, 100);
+                
+                // 隐藏UI元素
+                document.querySelector('.game-info').style.display = 'none';
+                document.querySelector('h1').style.display = 'none';
+                document.querySelector('.game-controls').style.display = 'none';
+            }
+
+            gameState.isGameRunning = true;
+            gameState.isGameOver = false;
+            gameState.cigaretteCount = 0;
+            gameState.timeRemaining = GAME_CONFIG.GAME_DURATION;
+            gameState.cigarettes = [];
+            gameState.clickEffects = [];
+
+            countElement.textContent = gameState.cigaretteCount;
+            timerElement.textContent = gameState.timeRemaining;
+            startBtn.style.display = 'none';
+            endBtn.style.display = 'inline-block';
+
+            // 启动香烟生成
+            spawnInterval = setInterval(() => {
+                if (Math.random() < GAME_CONFIG.SPAWN_PROBABILITY) {
+                    gameState.cigarettes.push(new Cigarette());
+                }
+            }, GAME_CONFIG.SPAWN_INTERVAL);
+
+            // 启动计时器
+            timerInterval = setInterval(() => {
+                gameState.timeRemaining--;
+                timerElement.textContent = gameState.timeRemaining;
+
+                if (gameState.timeRemaining <= 0) {
+                    endGame();
+                }
+            }, 1000);
+
+            gameLoop();
+        }
+
+        function endGame() {
+            gameState.isGameRunning = false;
+            gameState.isGameOver = true;
+            clearInterval(spawnInterval);
+            clearInterval(timerInterval);
+
+            // 保存成绩
+            savePlayer(gameState.currentPlayer, gameState.cigaretteCount);
+
+            // 继续游戏循环以显示结束画面
+            if (!gameLoopId) {
+                gameLoop();
+            }
+        }
+
+        function restartGame() {
+            gameState.isGameOver = false;
+            startGame();
+        }
+
+        function gameLoop() {
+            if (!ctx) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 更新和绘制香烟
+            gameState.cigarettes = gameState.cigarettes.filter(cigarette => {
+                cigarette.update();
+                cigarette.draw();
+                return cigarette.y < canvas.height;
+            });
+
+            // 更新和绘制点击效果
+            gameState.clickEffects = gameState.clickEffects.filter(effect => {
+                effect.update();
+                effect.draw();
+                return !effect.isFinished();
+            });
+
+            // 在全屏模式下绘制信息
+            if (document.body.classList.contains('fullscreen-game')) {
+                if (gameState.isGameOver) {
+                    drawGameOverScreen();
+                } else {
+                    drawGameInfo();
+                }
+            }
+
+            if (gameState.isGameRunning || gameState.isGameOver) {
+                gameLoopId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function drawGameInfo() {
+            ctx.save();
+            
+            const boxWidth = 200;
+            const boxHeight = 80;
+            ctx.fillStyle = 'rgba(245, 233, 216, 0.9)';
+            ctx.fillRect(10, 10, boxWidth, boxHeight);
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, boxWidth, boxHeight);
+            
+            ctx.fillStyle = '#5d4037';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText(`数量: ${gameState.cigaretteCount}`, 20, 35);
+            ctx.fillText(`时间: ${gameState.timeRemaining}秒`, 20, 60);
+            
+            if (gameState.timeRemaining <= 5) {
+                ctx.fillStyle = '#ff0000';
+                ctx.font = 'bold 24px Arial';
+                ctx.fillText(`时间: ${gameState.timeRemaining}秒`, 20, 60);
+            }
+            
+            ctx.restore();
+        }
+
+        function drawGameOverScreen() {
+            ctx.save();
+            
+            // 半透明背景
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 主框
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const boxWidth = Math.min(canvas.width * 0.85, 350);
+            const boxHeight = Math.min(canvas.height * 0.7, 400);
+            
+            ctx.fillStyle = 'rgba(245, 233, 216, 0.98)';
+            ctx.fillRect(centerX - boxWidth/2, centerY - boxHeight/2, boxWidth, boxHeight);
+            
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(centerX - boxWidth/2, centerY - boxHeight/2, boxWidth, boxHeight);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#d4af37';
+            ctx.font = 'bold 32px Arial';
+            ctx.fillText('🎉 游戏结束 🎉', centerX, centerY - 80);
+            
+            ctx.fillStyle = '#5d4037';
+            ctx.font = 'bold 22px Arial';
+            ctx.fillText(`${gameState.currentPlayer}`, centerX, centerY - 40);
+            ctx.fillText(`抢到 ${gameState.cigaretteCount} 根香烟`, centerX, centerY - 10);
+            
+            // 显示排名
+            const leaderboard = getLeaderboard();
+            const currentRank = leaderboard.findIndex(p => p.name === gameState.currentPlayer) + 1;
+            ctx.fillStyle = '#d4af37';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText(`🏆 排名: 第 ${currentRank} 名`, centerX, centerY + 25);
+            
+            // 绘制按钮区域
+            const buttonY = centerY + 90;
+            const buttonWidth = 140;
+            const buttonHeight = 45;
+            const buttonGap = 30;
+            
+            // 查看排行榜按钮
+            const leaderboardButtonX = centerX - buttonWidth/2 - buttonGap/2;
+            const leaderboardBtnLeft = leaderboardButtonX - buttonWidth/2;
+            const leaderboardBtnTop = buttonY - buttonHeight/2;
+            
+            // 绘制查看排行榜按钮
+            ctx.fillStyle = '#d4af37';
+            ctx.fillRect(leaderboardBtnLeft, leaderboardBtnTop, buttonWidth, buttonHeight);
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(leaderboardBtnLeft, leaderboardBtnTop, buttonWidth, buttonHeight);
+            
+            ctx.fillStyle = '#5d4037';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('📊 查看排行榜', leaderboardButtonX, buttonY + 6);
+            
+            // 返回主屏幕按钮
+            const backButtonX = centerX + buttonWidth/2 + buttonGap/2;
+            const backBtnLeft = backButtonX - buttonWidth/2;
+            const backBtnTop = buttonY - buttonHeight/2;
+            
+            // 绘制返回主屏幕按钮
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(backBtnLeft, backBtnTop, buttonWidth, buttonHeight);
+            ctx.strokeStyle = '#cd853f';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(backBtnLeft, backBtnTop, buttonWidth, buttonHeight);
+            
+            ctx.fillStyle = '#f5e9d8';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('🏠 返回主屏幕', backButtonX, buttonY + 6);
+            
+            ctx.restore();
+            
+            // 存储按钮位置供点击检测使用
+            gameState.gameOverButtons = {
+                leaderboard: {
+                    x: leaderboardBtnLeft,
+                    y: leaderboardBtnTop,
+                    width: buttonWidth,
+                    height: buttonHeight
+                },
+                back: {
+                    x: backBtnLeft,
+                    y: backBtnTop,
+                    width: buttonWidth,
+                    height: buttonHeight
+                }
+            };
+        }
+
+        // 事件处理
+        function handleClick(event) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
+
+            if (gameState.isGameOver && gameState.gameOverButtons) {
+                console.log('Click at:', x, y);
+                console.log('Leaderboard button:', gameState.gameOverButtons.leaderboard);
+                console.log('Back button:', gameState.gameOverButtons.back);
+                
+                // 检查是否点击了查看排行榜按钮
+                const leaderboardBtn = gameState.gameOverButtons.leaderboard;
+                if (x >= leaderboardBtn.x && x <= leaderboardBtn.x + leaderboardBtn.width &&
+                    y >= leaderboardBtn.y && y <= leaderboardBtn.y + leaderboardBtn.height) {
+                    console.log('Leaderboard button clicked!');
+                    showLeaderboard();
+                    return;
+                }
+                
+                // 检查是否点击了返回主屏幕按钮
+                const backBtn = gameState.gameOverButtons.back;
+                if (x >= backBtn.x && x <= backBtn.x + backBtn.width &&
+                    y >= backBtn.y && y <= backBtn.y + backBtn.height) {
+                    console.log('Back button clicked!');
+                    backToMenu();
+                    return;
+                }
+                return;
+            }
+
+            if (!gameState.isGameRunning) return;
+
+            for (let i = gameState.cigarettes.length - 1; i >= 0; i--) {
+                const cigarette = gameState.cigarettes[i];
+                if (cigarette.isClicked(x, y)) {
+                    gameState.clickEffects.push(new ClickEffect(x, y));
+                    gameState.cigaretteCount++;
+                    countElement.textContent = gameState.cigaretteCount;
+                    gameState.cigarettes.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        function handleTouch(event) {
+            event.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            const touch = event.touches[0];
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
+
+            if (gameState.isGameOver && gameState.gameOverButtons) {
+                console.log('Touch at:', x, y);
+                console.log('Leaderboard button:', gameState.gameOverButtons.leaderboard);
+                console.log('Back button:', gameState.gameOverButtons.back);
+                
+                // 检查是否点击了查看排行榜按钮
+                const leaderboardBtn = gameState.gameOverButtons.leaderboard;
+                if (x >= leaderboardBtn.x && x <= leaderboardBtn.x + leaderboardBtn.width &&
+                    y >= leaderboardBtn.y && y <= leaderboardBtn.y + leaderboardBtn.height) {
+                    console.log('Leaderboard button touched!');
+                    showLeaderboard();
+                    return;
+                }
+                
+                // 检查是否点击了返回主屏幕按钮
+                const backBtn = gameState.gameOverButtons.back;
+                if (x >= backBtn.x && x <= backBtn.x + backBtn.width &&
+                    y >= backBtn.y && y <= backBtn.y + backBtn.height) {
+                    console.log('Back button touched!');
+                    backToMenu();
+                    return;
+                }
+                return;
+            }
+
+            if (!gameState.isGameRunning) return;
+
+            for (let i = gameState.cigarettes.length - 1; i >= 0; i--) {
+                const cigarette = gameState.cigarettes[i];
+                if (cigarette.isClicked(x, y)) {
+                    gameState.clickEffects.push(new ClickEffect(x, y));
+                    gameState.cigaretteCount++;
+                    countElement.textContent = gameState.cigaretteCount;
+                    gameState.cigarettes.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        // 全屏状态监听
+        function handleFullscreenChange() {
+            const isFullscreen = !!(document.fullscreenElement || 
+                                   document.webkitFullscreenElement || 
+                                   document.msFullscreenElement);
+            
+            if (!isFullscreen && document.body.classList.contains('fullscreen-game')) {
+                document.body.classList.remove('fullscreen-game');
+                resizeCanvas();
+                
+                if (/Mobi|Android/i.test(navigator.userAgent)) {
+                    document.querySelector('.game-info').style.display = 'grid';
+                    document.querySelector('h1').style.display = 'block';
+                    document.querySelector('.game-controls').style.display = 'block';
+                }
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 全屏监听
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.addEventListener('msfullscreenchange', handleFullscreenChange);
+            
+            // 游戏事件
+            canvas.addEventListener('click', handleClick);
+            canvas.addEventListener('touchstart', handleTouch);
+            startBtn.addEventListener('click', startGame);
+            endBtn.addEventListener('click', endGame);
+            
+            // 回车键登录
+            document.getElementById('playerName').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    enterGame();
+                }
+            });
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        });
+    </script>
+</body>
+</html> 
