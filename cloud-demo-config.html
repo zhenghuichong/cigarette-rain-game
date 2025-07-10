@@ -370,21 +370,10 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- 演示版无需Firebase SDK -->
 
     <script>
-        // 演示版Firebase配置（这是一个公共演示配置）
-        const firebaseConfig = {
-            apiKey: "AIzaSyBqWPzMqH3H3JrNQZQRGpGD7CGkxqjAKjc",
-            authDomain: "cigarette-demo-12345.firebaseapp.com",
-            databaseURL: "https://cigarette-demo-12345-default-rtdb.firebaseio.com/",
-            projectId: "cigarette-demo-12345",
-            storageBucket: "cigarette-demo-12345.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef123456789012"
-        };
+        // 演示版 - 无需Firebase配置
 
         // 游戏状态
         let gameState = {
@@ -412,16 +401,41 @@
 
         // 模拟云端存储（演示版使用localStorage + 模拟网络延迟）
         let isConnected = false;
-        let database = null;
 
         // 初始化（演示版）
         function initDemo() {
-            // 模拟Firebase连接
-            setTimeout(() => {
-                isConnected = true;
+            console.log('开始初始化演示版...');
+            
+            // 初始化DOM元素
+            try {
+                loginScreen = document.getElementById('loginScreen');
+                gameScreen = document.getElementById('gameScreen');
+                leaderboardScreen = document.getElementById('leaderboardScreen');
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+                
+                console.log('DOM元素初始化完成');
+                
+                // 立即更新连接状态为连接中
                 updateConnectionStatus();
-                loadDemoData();
-            }, 2000);
+                
+                // 模拟Firebase连接延迟
+                setTimeout(() => {
+                    console.log('模拟连接成功');
+                    isConnected = true;
+                    updateConnectionStatus();
+                    loadDemoData();
+                }, 1000); // 减少延迟时间到1秒
+                
+            } catch (error) {
+                console.error('初始化出错:', error);
+                // 如果出错，显示错误信息
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    statusElement.className = 'status disconnected';
+                    statusElement.textContent = '❌ 初始化失败，请刷新页面';
+                }
+            }
         }
 
         function updateConnectionStatus() {
@@ -429,38 +443,62 @@
             const enterBtn = document.getElementById('enterGameBtn');
             const leaderboardBtn = document.getElementById('leaderboardBtn');
             
+            if (!statusElement) {
+                console.error('状态元素未找到');
+                return;
+            }
+            
             if (isConnected) {
                 statusElement.className = 'status connected';
                 statusElement.textContent = '🟢 云端演示已连接';
-                enterBtn.disabled = false;
-                leaderboardBtn.disabled = false;
+                if (enterBtn) enterBtn.disabled = false;
+                if (leaderboardBtn) leaderboardBtn.disabled = false;
+                console.log('连接状态更新: 已连接');
             } else {
                 statusElement.className = 'status disconnected';
                 statusElement.textContent = '🔴 初始化中...';
-                enterBtn.disabled = true;
-                leaderboardBtn.disabled = true;
+                if (enterBtn) enterBtn.disabled = true;
+                if (leaderboardBtn) leaderboardBtn.disabled = true;
+                console.log('连接状态更新: 初始化中');
             }
         }
 
         function loadDemoData() {
-            // 加载演示数据
-            let players = JSON.parse(localStorage.getItem('demo_cigarette_players') || '[]');
+            console.log('加载演示数据...');
             
-            // 如果没有数据，创建一些演示数据
-            if (players.length === 0) {
-                players = [
-                    { name: '小明', bestScore: 42, totalGames: 3, lastPlayed: new Date().toISOString() },
-                    { name: '小红', bestScore: 38, totalGames: 2, lastPlayed: new Date().toISOString() },
-                    { name: '小刚', bestScore: 35, totalGames: 1, lastPlayed: new Date().toISOString() }
-                ];
-                localStorage.setItem('demo_cigarette_players', JSON.stringify(players));
+            try {
+                // 加载演示数据
+                let players = JSON.parse(localStorage.getItem('demo_cigarette_players') || '[]');
+                
+                // 如果没有数据，创建一些演示数据
+                if (players.length === 0) {
+                    players = [
+                        { name: '小明', bestScore: 42, totalGames: 3, lastPlayed: new Date().toISOString() },
+                        { name: '小红', bestScore: 38, totalGames: 2, lastPlayed: new Date().toISOString() },
+                        { name: '小刚', bestScore: 35, totalGames: 1, lastPlayed: new Date().toISOString() }
+                    ];
+                    localStorage.setItem('demo_cigarette_players', JSON.stringify(players));
+                    console.log('创建了演示数据');
+                }
+                
+                updateLeaderboardDisplay(players.sort((a, b) => b.bestScore - a.bestScore));
+                
+                // 模拟在线玩家数量
+                const onlineCountElement = document.getElementById('onlineCount');
+                const onlinePlayersInfo = document.getElementById('onlinePlayersInfo');
+                
+                if (onlineCountElement) {
+                    onlineCountElement.textContent = Math.floor(Math.random() * 5) + 1;
+                }
+                if (onlinePlayersInfo) {
+                    onlinePlayersInfo.style.display = 'block';
+                }
+                
+                console.log('演示数据加载完成');
+                
+            } catch (error) {
+                console.error('加载演示数据失败:', error);
             }
-            
-            updateLeaderboardDisplay(players.sort((a, b) => b.bestScore - a.bestScore));
-            
-            // 模拟在线玩家数量
-            document.getElementById('onlineCount').textContent = Math.floor(Math.random() * 5) + 1;
-            document.getElementById('onlinePlayersInfo').style.display = 'block';
         }
 
         async function savePlayerScore(name, score) {
@@ -494,6 +532,11 @@
         function updateLeaderboardDisplay(leaderboard) {
             const leaderboardDiv = document.getElementById('leaderboard');
             
+            if (!leaderboardDiv) {
+                console.error('排行榜元素未找到');
+                return;
+            }
+            
             if (!leaderboard || leaderboard.length === 0) {
                 leaderboardDiv.innerHTML = '<div class="loading">暂无排行榜数据</div>';
                 return;
@@ -522,12 +565,8 @@
             leaderboardDiv.innerHTML = html;
         }
 
-        // DOM元素
-        const loginScreen = document.getElementById('loginScreen');
-        const gameScreen = document.getElementById('gameScreen');
-        const leaderboardScreen = document.getElementById('leaderboardScreen');
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        // DOM元素 - 将在页面加载后初始化
+        let loginScreen, gameScreen, leaderboardScreen, canvas, ctx;
 
         // 游戏循环相关
         let gameLoopId;
@@ -751,33 +790,48 @@
             }
         }
 
-        // 添加事件监听器
-        canvas.addEventListener('click', handleCanvasClick);
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rect = canvas.getBoundingClientRect();
-            const x = touch.clientX - rect.left;
-            const y = touch.clientY - rect.top;
-            
-            if (gameState.isGameRunning) {
-                for (let i = gameState.cigarettes.length - 1; i >= 0; i--) {
-                    const cigarette = gameState.cigarettes[i];
-                    if (cigarette.isClicked(x, y)) {
-                        gameState.clickEffects.push(new ClickEffect(x, y));
-                        gameState.cigaretteCount++;
-                        document.getElementById('cigaretteCount').textContent = gameState.cigaretteCount;
-                        gameState.cigarettes.splice(i, 1);
-                        break;
+        // 添加事件监听器的函数
+        function setupEventListeners() {
+            if (canvas) {
+                canvas.addEventListener('click', handleCanvasClick);
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    
+                    if (gameState.isGameRunning) {
+                        for (let i = gameState.cigarettes.length - 1; i >= 0; i--) {
+                            const cigarette = gameState.cigarettes[i];
+                            if (cigarette.isClicked(x, y)) {
+                                gameState.clickEffects.push(new ClickEffect(x, y));
+                                gameState.cigaretteCount++;
+                                const countElement = document.getElementById('cigaretteCount');
+                                if (countElement) {
+                                    countElement.textContent = gameState.cigaretteCount;
+                                }
+                                gameState.cigarettes.splice(i, 1);
+                                break;
+                            }
+                        }
                     }
-                }
+                });
+                console.log('事件监听器设置完成');
             }
-        });
+        }
 
         // 初始化
         window.addEventListener('load', () => {
+            console.log('页面加载完成，开始初始化');
             initDemo();
-            resizeCanvas();
+            // 延迟执行以确保DOM完全加载
+            setTimeout(() => {
+                if (canvas) {
+                    resizeCanvas();
+                    setupEventListeners();
+                }
+            }, 100);
         });
     </script>
 </body>
